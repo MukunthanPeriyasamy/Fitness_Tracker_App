@@ -203,14 +203,14 @@ Saturday: Endurance & Speed – 2000m (Combination of long & fast swims)
 Sunday: Active Recovery – 30 mins (Slow & relaxed swim)
 ''')
                 else:
-                    print('''Weekly Schedule\n
-Monday: Interval Training – 30-45 mins (Alternate between high & low intensity)\n
-Tuesday: Endurance Ride – 60 mins (Maintain steady pace)\n
-Wednesday: Hill Training – 40 mins (Focus on climbs)\n
-Thursday: Recovery Ride – 30 mins (Low-intensity, easy pace)\n
-Friday: Speed Work – 45 mins (Sprints & cadence drills)\n
-Saturday: Long Ride – 90+ mins (Build stamina)\n
-Sunday: Rest or Light Stretching\n
+                    print('''Weekly Schedule
+Monday: Interval Training – 30-45 mins (Alternate between high & low intensity)
+Tuesday: Endurance Ride – 60 mins (Maintain steady pace)
+Wednesday: Hill Training – 40 mins (Focus on climbs)
+Thursday: Recovery Ride – 30 mins (Low-intensity, easy pace)
+Friday: Speed Work – 45 mins (Sprints & cadence drills)
+Saturday: Long Ride – 90+ mins (Build stamina)
+Sunday: Rest or Light Stretching
 ''')
             else:
                 print('Invalid choice')
