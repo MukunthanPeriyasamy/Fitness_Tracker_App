@@ -6,17 +6,15 @@ import datetime
 connection = sqlite3.connect('sample.db')
 cursor = connection.cursor()
 
-# Create Users Table 
+# Create Users Table
 cursor.execute(
     '''
     CREATE TABLE IF NOT EXISTS Users(
         name VARCHAR(50),
-        password TEXT PRIMARY KEY
+        password TEXT
     );
     '''
 )
-
-cursor.execute('DROP TABLE IF EXISTS workout_plans')
 
 cursor.execute(
     '''
@@ -55,6 +53,25 @@ cursor.execute(
     );
     '''
 )
+
+# Create goal table
+cursor.execute(
+    '''
+    create table if not exists goal_settings(
+    activity VARCHAR(10),
+    weight_to_loss real,
+    time_to_cover real
+    )
+    '''
+)
+
+def insert_goal_settings(activity, weight_to_loss, time_to_cover):
+    cursor.execute(
+        '''
+        insert into goal_settings(activity, weight_to_loss, time_to_cover) values (?, ?, ?)
+        ''',
+        (activity, weight_to_loss, time_to_cover)
+    )
 
 # Insert Users
 def insert_users(name, password):
@@ -95,6 +112,10 @@ class User:
         print("Enter the following details\n")
         try:
             age = int(input("Enter your age: "))
+            if age < 18 or age > 60:
+                print("Sorry, this platform is suitable for you!!")
+                User.authentication(password)
+
             weight = float(input("Enter your weight: "))
             gender = input("Enter your gender: ")
         except ValueError:
@@ -105,7 +126,7 @@ class User:
         print("Registered Successfully!!")
         time.sleep(0.7)
         print("Good to go")
-        os.system('cls')
+        os.system('cls' if os.name == 'nt' else 'clear')
 
     @staticmethod
     def login_verification(name, password):
@@ -115,20 +136,20 @@ class User:
 
         if user_query:
             print("Logged in successfully")
+            time.sleep(0.5)
             os.system('cls')
         else:
             print("Invalid username or password! Please try again.")
             return
 
-
 class FitnessTracker(User):
 
     @staticmethod
     def activity_tracking(password):
+        os.system('cls')
         activity = {1: 'Running', 2: 'Swimming', 3: 'Cycling'}
         for i, j in activity.items():
             print(f"{i}. {j}")
-
         try:
             select = int(input("Select your fitness activity: "))
             choice = activity.get(select, 'Invalid Choice')
@@ -176,6 +197,7 @@ class FitnessTracker(User):
 
     @staticmethod
     def workout_plans():
+        os.system('cls')
         activity = {1: 'Running', 2: 'Swimming', 3: 'Cycling'}
         for i, j in activity.items():
             print(f"{i}. {j}")
@@ -219,6 +241,7 @@ Sunday: Rest or Light Stretching
 
     @staticmethod
     def custom_plans(password):
+        os.system('cls')
         print('Create Your own custom Plans:\n')
         activity = {1: 'Running', 2: 'Swimming', 3: 'Cycling'}
         for i, j in activity.items():
@@ -228,49 +251,52 @@ Sunday: Rest or Light Stretching
         if choice != 'Invalid Choice':
             if select == 1:
                 print(f'Create Plan for {choice}')
-                Monday = input('Monday: ')
-                Tuesday = input('Tuesday: ')
-                Wednesday = input('Wednesday: ')
-                Thursday = input('Thursday: ')
-                Friday = input('Friday: ')
-                Saturday = input('Saturday: ')
-                Sunday = input('Sunday: ')
-
             elif select == 2:
                 print(f'Create Plan for {choice}')
-                Monday = input('Monday: ')
-                Tuesday = input('Tuesday: ')
-                Wednesday = input('Wednesday: ')
-                Thursday = input('Thursday: ')
-                Friday = input('Friday: ')
-                Saturday = input('Saturday: ')
-                Sunday = input('Sunday: ')
-
             else:
                 print(f'Create Plan for {choice}')
-                Monday = input('Monday: ')
-                Tuesday = input('Tuesday: ')
-                Wednesday = input('Wednesday: ')
-                Thursday = input('Thursday: ')
-                Friday = input('Friday: ')
-                Saturday = input('Saturday: ')
-                Sunday = input('Sunday: ')
-
+            Monday = input('Monday: ')
+            Tuesday = input('Tuesday: ')
+            Wednesday = input('Wednesday: ')
+            Thursday = input('Thursday: ')
+            Friday = input('Friday: ')
+            Saturday = input('Saturday: ')
+            Sunday = input('Sunday: ')
         else:
             print('Invalid choice')
             return
         # Now, inserting the workout plan without the password
         insert_workout_plans(Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
 
+    @staticmethod
+    def goal_setting():
+        os.system('cls')
+        print("Set your goal")
+
+        activity = {1: 'Running', 2: 'Swimming', 3: 'Cycling'}
+        for i, j in activity.items():
+            print(f"{i}. {j}")
+        type_of_activity = int(input("Enter your activity type: "))
+        weight_to_loss = float(input("Enter the weight to loss: "))
+        choice = activity.get(type_of_activity, 'Invalid Choice')
+        if choice != 'Invalid Choice':
+                time_to_cover  = float(input("Enter the Duration: "))
+                insert_goal_settings(choice,weight_to_loss, time_to_cover)
+                print('Goal settings set')
+        else:
+            print('Invalid choice')
+            return
 
 def main():
     user = input("Login or Sign Up: ").strip().lower()
     if user == 'login':
+        print("----LOGIN----")
         name = input("Enter the username: ")
         password = input("Enter the password: ")
         User.login_verification(name, password)
 
     elif user == 'sign up':
+        print("----SIGN UP----")
         name = input("Enter the username: ")
         password = input("Enter the password: ")
         insert_users(name, password)
@@ -283,8 +309,8 @@ def main():
 
     check = True
     while check:
-
-        assist = {1: 'Start workout', 2: 'Workout Plans', 3: 'Custom Work Plans'}
+        os.system('cls')
+        assist = {1: 'Start workout', 2: 'Workout Plans', 3: 'Custom Work Plans',4:'Set Goal'}
         for i, j in assist.items():
             print(f"{i}. {j}")
         input_choice = int(input("Enter your choice: "))
@@ -294,8 +320,11 @@ def main():
                 FitnessTracker.activity_tracking(password)
             elif input_choice == 2:
                 FitnessTracker.workout_plans()
-            else:
+            elif input_choice == 3:
                 FitnessTracker.custom_plans(password)
+            elif input_choice == 4:
+                FitnessTracker.goal_setting()
+
         else:
             print("Please enter a valid input")
 
