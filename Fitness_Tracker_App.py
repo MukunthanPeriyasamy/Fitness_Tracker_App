@@ -63,13 +63,32 @@ cursor.execute(
 cursor.execute(
     '''
     create table if not exists achievements(
-    user_id int,
+    user_id integer,
     activity varchar(10),
     calories_burned real
 );
     '''
 )
 
+cursor.execute(
+    '''
+    create table if not exists friends(
+    friends_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id integer,
+    friend_name VARCHAR(50),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+''')
+
+def insert_friends(user_id,friends_name):
+    cursor.execute(
+        '''
+        INSERT INTO friends(user_id,friend_name)
+        VALUES (?, ?)
+        ''',
+        (user_id, friends_name)
+    )
+    connection.commit()
 def insert_goal_settings(user_id, activity, duration_in_mins, weight_to_loss):
     cursor.execute(
         '''
@@ -115,6 +134,8 @@ def insert_achievements(user_id, activity, calories_burned):
         (user_id, activity, calories_burned)
     )
     connection.commit()
+
+
 
 class User:
     @staticmethod
@@ -315,7 +336,7 @@ def main():
     while check:
         os.system('cls')
         print('Select your fitness activity:')
-        assist = {1: 'Start workout', 2: 'Workout Plans', 3: 'Custom Work Plans', 4: 'Set Goal',5:'Leader Board',6:'Achievements'}
+        assist = {1: 'Start workout', 2: 'Workout Plans', 3: 'Custom Work Plans', 4: 'Set Goal',5:'Leader Board',6:'Achievements',7:'Add Friend',8:'Activities',9:'Log out'}
         for i, j in assist.items():
             print(f"{i}. {j}")
         try:
@@ -323,7 +344,7 @@ def main():
             choice = assist.get(input_choice, 'Invalid Choice')
             if choice == 'Invalid Choice':
                 print("Please enter a valid input")
-                continue
+                return
 
             if input_choice == 1:
                 FitnessTracker.activity_tracking(user_id)
@@ -359,13 +380,32 @@ def main():
 
                 if result:
                     print(tabulate([result], headers=['No_of_activity','Total_calories_burned']))
+            elif input_choice == 7:
+
+                friend_name = input('Enter your friend name: ')
+                result = cursor.execute('select friend_name from friends where friend_name = ?', (friend_name,)).fetchone()
+                if not result:
+                    insert_friends(user_id, friend_name)
+                    print('Friend Name Added')
+                else:
+                    print('friend name is already taken')
+            elif input_choice == 8:
+                result = cursor.execute('select date , activity , calories_burned from workout_details where user_id = ?', (user_id, )).fetchall()
+                if result:
+                    column_name = [desc[0] for desc in cursor.description]
+                    print(tabulate(result, headers=column_name,tablefmt='fancy_grid'))
+                    time.sleep(2)
+                else:
+                    print('No activites Found')
+            elif input_choice == 9:
+                print("Logged Out")
+                exit()
         except ValueError:
             print("Please enter a valid input")
 
         yes_no = input("Do you want to continue? (y/n): ").strip().lower()
         if yes_no != 'y':
             check = False
-
     connection.close()
 
 if __name__ == '__main__':
