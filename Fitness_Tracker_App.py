@@ -2,31 +2,34 @@ import time
 import os
 import sqlite3
 import datetime
+from tabulate import tabulate
 
+# Database connection
 connection = sqlite3.connect('sample.db')
 cursor = connection.cursor()
 
 # Create Users Table
 cursor.execute(
     '''
-    CREATE TABLE IF NOT EXISTS Users(
-        name VARCHAR(50),
-        password TEXT
-    );
+    CREATE TABLE IF NOT EXISTS Users (
+        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name VARCHAR(50) UNIQUE,
+        password VARCHAR(10),
+        age INT,
+        gender VARCHAR(10)
+        );
     '''
 )
 
 cursor.execute(
     '''
     CREATE TABLE IF NOT EXISTS workout_plans(
-        Monday VARCHAR(50),
-        Tuesday VARCHAR(50),
-        Wednesday VARCHAR(50),
-        Thursday VARCHAR(50),
-        Friday VARCHAR(50),
-        Saturday VARCHAR(50),
-        Sunday VARCHAR(50)
-    );
+        plan_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        date TEXT,
+        activity VARCHAR(20),
+        FOREIGN KEY (user_id) REFERENCES Users (user_id)
+        )
     '''
 )
 
@@ -34,102 +37,107 @@ cursor.execute(
 cursor.execute(
     '''
     CREATE TABLE IF NOT EXISTS workout_details(
-        day DATE,
-        activity VARCHAR(10),
-        calories_burned REAL
-    );
-    '''
-)
-
-# Create user_details Table
-cursor.execute(
-    '''
-    CREATE TABLE IF NOT EXISTS User_details(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        password TEXT NOT NULL,
-        age INTEGER,
-        weight REAL,
-        gender VARCHAR(10)
-    );
+        workout_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        date TEXT,
+        activity VARCHAR(20),
+        calories_burned REAL,
+        FOREIGN KEY (user_id) REFERENCES Users (user_id)
+        )
     '''
 )
 
 # Create goal table
 cursor.execute(
     '''
-    create table if not exists goal_settings(
-    activity VARCHAR(10),
-    weight_to_loss real,
-    time_to_cover real
+    CREATE TABLE IF NOT EXISTS goal_settings(
+        goal_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        activity VARCHAR(20),
+        duration_in_mins INT,
+        weight_to_loss REAL,
+        FOREIGN KEY (user_id) REFERENCES Users(user_id)
     )
     '''
 )
 
-def insert_goal_settings(activity, weight_to_loss, time_to_cover):
+def insert_goal_settings(user_id, activity, duration_in_mins, weight_to_loss):
     cursor.execute(
         '''
-        insert into goal_settings(activity, weight_to_loss, time_to_cover) values (?, ?, ?)
+        INSERT INTO goal_settings(user_id, activity, duration_in_mins, weight_to_loss)
+        VALUES (?, ?, ?, ?)
         ''',
-        (activity, weight_to_loss, time_to_cover)
-    )
-
-# Insert Users
-def insert_users(name, password):
-    cursor.execute(
-        '''
-        INSERT INTO Users VALUES (?, ?)
-        ''',
-        (name, password)
+        (user_id, activity, duration_in_mins, weight_to_loss)
     )
     connection.commit()
 
-# Insert User Details
-def user_details(password, age, weight, gender):
+def insert_users(name, password, age, gender):
     cursor.execute(
         '''
-        INSERT INTO User_details (password, age, weight, gender) VALUES (?,?, ?, ?)
+        INSERT INTO Users(name, password, age, gender)
+        VALUES (?, ?, ?, ?)
         ''',
-        (password, age, weight, gender)
+        (name, password, age, gender)
     )
     connection.commit()
 
-# Insert workout plans
-def insert_workout_plans(monday, tuesday, wednesday, thursday, friday, saturday, sunday):
+def insert_workout_plans(user_id, date, activity):
     cursor.execute(
         '''
-        INSERT INTO workout_plans (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO workout_plans (user_id, date, activity)
+        VALUES (?, ?, ?)
         ''',
-        (monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+        (user_id, date, activity)
     )
     connection.commit()
 
+def insert_workout_details(user_id, date, activity, calories_burned):
+    cursor.execute(
+        '''
+        INSERT INTO workout_details(user_id, date, activity, calories_burned)
+        VALUES (?, ?, ?, ?)
+        ''',
+        (user_id, date, activity, calories_burned)
+    )
+    connection.commit()
 
 class User:
-
     @staticmethod
-    def authentication(password):
+    def authentication():
         print("Enter the following details\n")
         try:
+            name = input("Enter the username: ")
+            password = input("Enter the password: ")
+            user_query = cursor.execute(
+                'SELECT * FROM Users WHERE name = ?', (name,)
+            ).fetchone()
+
+            if user_query:
+                print('Username already exists. Please log in.')
+                User.login_verification(name, password)
+                return
+
             age = int(input("Enter your age: "))
             if age < 18 or age > 60:
-                print("Sorry, this platform is suitable for you!!")
-                User.authentication(password)
+                print("Sorry, this platform is not suitable for you!!")
+                return
 
-            weight = float(input("Enter your weight: "))
             gender = input("Enter your gender: ")
+            insert_users(name, password, age, gender)
+            print("Registered Successfully!!")
+            time.sleep(0.7)
+            print("Good to go")
+
         except ValueError:
             print("Please enter a valid input")
             return
 
-        user_details(password, age, weight, gender)
-        print("Registered Successfully!!")
-        time.sleep(0.7)
-        print("Good to go")
-        os.system('cls' if os.name == 'nt' else 'clear')
-
     @staticmethod
-    def login_verification(name, password):
+    def login_verification(name=None, password=None):
+        if name is None or password is None:
+            name = input("Enter the username: ")
+            password = input("Enter the password: ")
+
         user_query = cursor.execute(
             'SELECT * FROM Users WHERE name = ? AND password = ?', (name, password)
         ).fetchone()
@@ -138,14 +146,14 @@ class User:
             print("Logged in successfully")
             time.sleep(0.5)
             os.system('cls')
+            return user_query[0]  # Return user_id
         else:
             print("Invalid username or password! Please try again.")
-            return
+            return None
 
 class FitnessTracker(User):
-
     @staticmethod
-    def activity_tracking(password):
+    def activity_tracking(user_id):
         os.system('cls')
         activity = {1: 'Running', 2: 'Swimming', 3: 'Cycling'}
         for i, j in activity.items():
@@ -153,47 +161,34 @@ class FitnessTracker(User):
         try:
             select = int(input("Select your fitness activity: "))
             choice = activity.get(select, 'Invalid Choice')
-            if choice != 'Invalid Choice':
-                print(f'You Have Selected: {choice}')
-            else:
+            if choice == 'Invalid Choice':
                 print(choice)
                 return
         except ValueError:
             print("Please enter a valid number!")
             return
 
-        weight = cursor.execute(
-            'SELECT weight FROM User_details WHERE password= ?', (password,)
-        ).fetchone()
-
-        if weight:
-            weight = weight[0]
-
+        weight = float(input("Enter your weight: "))
         input("Can we start? (s) ")
         start_time = time.time()
 
-        print(f"{activity[select]}...")
+        print(f"{choice}...")
         input("Do you want to stop? (e) ")
         end_time = time.time()
 
         diff_time = (end_time - start_time) / 60
 
         if select == 1:
-            calories = 9 * diff_time * weight
+            calories_burned = 9 * diff_time * weight
         elif select == 2:
-            calories = 8 * diff_time * weight
+            calories_burned = 8 * diff_time * weight
         else:
-            calories = 7 * diff_time * weight
+            calories_burned = 7 * diff_time * weight
 
-        date = datetime.datetime.today().strftime('%d-%m-%Y')
-
-        cursor.execute(
-            '''INSERT INTO workout_details VALUES (?, ?, ?)''',
-            (date, choice, calories)
-        )
-        connection.commit()
-
-        print(f"You burned {calories:.2f} calories")
+        date = datetime.datetime.today().strftime('%Y-%m-%d')
+        calories_burned = round(calories_burned,2)
+        insert_workout_details(user_id, date, choice, calories_burned)
+        print(f"You burned {calories_burned:.2f} calories")
 
     @staticmethod
     def workout_plans():
@@ -240,69 +235,62 @@ Sunday: Rest or Light Stretching
             print("Please enter a valid input")
 
     @staticmethod
-    def custom_plans(password):
+    def custom_plans(user_id):
         os.system('cls')
         print('Create Your own custom Plans:\n')
         activity = {1: 'Running', 2: 'Swimming', 3: 'Cycling'}
         for i, j in activity.items():
             print(f"{i}. {j}")
-        select = int(input("Select your fitness activity: "))
-        choice = activity.get(select, 'Invalid Choice')
-        if choice != 'Invalid Choice':
-            if select == 1:
-                print(f'Create Plan for {choice}')
-            elif select == 2:
-                print(f'Create Plan for {choice}')
-            else:
-                print(f'Create Plan for {choice}')
-            Monday = input('Monday: ')
-            Tuesday = input('Tuesday: ')
-            Wednesday = input('Wednesday: ')
-            Thursday = input('Thursday: ')
-            Friday = input('Friday: ')
-            Saturday = input('Saturday: ')
-            Sunday = input('Sunday: ')
-        else:
-            print('Invalid choice')
-            return
-        # Now, inserting the workout plan without the password
-        insert_workout_plans(Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
+        try:
+            select = int(input("Select your fitness activity: "))
+            choice = activity.get(select, 'Invalid Choice')
+            if choice == 'Invalid Choice':
+                print('Invalid choice')
+                return
+
+            date = input('Enter date (YYYY-MM-DD): ')
+            insert_workout_plans(user_id, date, choice)
+            print("Workout plan added successfully!")
+        except ValueError:
+            print("Please enter a valid input")
 
     @staticmethod
-    def goal_setting():
+    def goal_setting(user_id):
         os.system('cls')
         print("Set your goal")
 
         activity = {1: 'Running', 2: 'Swimming', 3: 'Cycling'}
         for i, j in activity.items():
             print(f"{i}. {j}")
-        type_of_activity = int(input("Enter your activity type: "))
-        weight_to_loss = float(input("Enter the weight to loss: "))
-        choice = activity.get(type_of_activity, 'Invalid Choice')
-        if choice != 'Invalid Choice':
-                time_to_cover  = float(input("Enter the Duration: "))
-                insert_goal_settings(choice,weight_to_loss, time_to_cover)
-                print('Goal settings set')
-        else:
-            print('Invalid choice')
-            return
+        try:
+            type_of_activity = int(input("Enter your activity type: "))
+            weight_to_loss = float(input("Enter the weight to loss: "))
+            choice = activity.get(type_of_activity, 'Invalid Choice')
+            if choice == 'Invalid Choice':
+                print('Invalid choice')
+                return
+
+            time_to_cover = float(input("Enter the Duration: "))
+            insert_goal_settings(user_id, choice, time_to_cover, weight_to_loss)
+            print('Goal settings set')
+        except ValueError:
+            print("Please enter a valid input")
 
 def main():
     user = input("Login or Sign Up: ").strip().lower()
     if user == 'login':
         print("----LOGIN----")
-        name = input("Enter the username: ")
-        password = input("Enter the password: ")
-        User.login_verification(name, password)
-
+        user_id = User.login_verification()
+        if user_id is None:
+            return
     elif user == 'sign up':
         print("----SIGN UP----")
-        name = input("Enter the username: ")
-        password = input("Enter the password: ")
-        insert_users(name, password)
-        print("Registered Successfully!!")
-        User.authentication(password)
-        time.sleep(0.7)
+        User.authentication()
+        os.system('cls')
+        print('Please Login Again')
+        user_id = User.login_verification()
+        if user_id is None:
+            return
     else:
         print("Invalid Choice")
         return
@@ -310,22 +298,41 @@ def main():
     check = True
     while check:
         os.system('cls')
-        assist = {1: 'Start workout', 2: 'Workout Plans', 3: 'Custom Work Plans',4:'Set Goal'}
+        print('Select your fitness activity:')
+        assist = {1: 'Start workout', 2: 'Workout Plans', 3: 'Custom Work Plans', 4: 'Set Goal',5:'Leader Board'}
         for i, j in assist.items():
             print(f"{i}. {j}")
-        input_choice = int(input("Enter your choice: "))
-        choice = assist.get(input_choice, 'Invalid Choice')
-        if choice != 'Invalid Choice':
+        try:
+            input_choice = int(input("Enter your choice: "))
+            choice = assist.get(input_choice, 'Invalid Choice')
+            if choice == 'Invalid Choice':
+                print("Please enter a valid input")
+                continue
+
             if input_choice == 1:
-                FitnessTracker.activity_tracking(password)
+                FitnessTracker.activity_tracking(user_id)
             elif input_choice == 2:
                 FitnessTracker.workout_plans()
             elif input_choice == 3:
-                FitnessTracker.custom_plans(password)
+                FitnessTracker.custom_plans(user_id)
             elif input_choice == 4:
-                FitnessTracker.goal_setting()
+                FitnessTracker.goal_setting(user_id)
+            elif input_choice == 5:
+                result = cursor.execute('''
+                select Users.* , workout_details.calories_burned
+                from Users
+                join workout_details 
+                on workout_details.user_id = Users.user_id
+                order by workout_details.calories_burned desc
+                ''').fetchall()
 
-        else:
+                column_name = [result[0] for result in cursor.description]
+
+                if result:
+                    print(tabulate(result, headers=column_name))
+                else:
+                    print('currently learder board is empty')
+        except ValueError:
             print("Please enter a valid input")
 
         yes_no = input("Do you want to continue? (y/n): ").strip().lower()
