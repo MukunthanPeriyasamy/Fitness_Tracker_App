@@ -3,6 +3,7 @@ import os
 import sqlite3
 import datetime
 from tabulate import tabulate
+import re
 
 # Database connection
 connection = sqlite3.connect('sample.db')
@@ -144,6 +145,12 @@ class User:
         try:
             name = input("Enter the username: ")
             password = input("Enter the password: ")
+            pattern = re.compile("(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*+=.,<>|]).{8,}")
+            result = pattern.fullmatch(password)
+            if not result:
+                print("The Password should contain at least 8 characters and at least one number and one special character.")
+                time.sleep(1)
+                User.authentication()
             user_query = cursor.execute(
                 'SELECT * FROM Users WHERE name = ?', (name,)
             ).fetchone()
