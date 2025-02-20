@@ -60,6 +60,15 @@ cursor.execute(
     )
     '''
 )
+cursor.execute(
+    '''
+    create table if not exists achievements(
+    user_id int,
+    activity varchar(10),
+    calories_burned real
+);
+    '''
+)
 
 def insert_goal_settings(user_id, activity, duration_in_mins, weight_to_loss):
     cursor.execute(
@@ -98,6 +107,12 @@ def insert_workout_details(user_id, date, activity, calories_burned):
         VALUES (?, ?, ?, ?)
         ''',
         (user_id, date, activity, calories_burned)
+    )
+    connection.commit()
+
+def insert_achievements(user_id, activity, calories_burned):
+    cursor.execute('insert into achievements(user_id, activity, calories_burned) values (?, ?, ?)',
+        (user_id, activity, calories_burned)
     )
     connection.commit()
 
@@ -188,6 +203,7 @@ class FitnessTracker(User):
         date = datetime.datetime.today().strftime('%Y-%m-%d')
         calories_burned = round(calories_burned,2)
         insert_workout_details(user_id, date, choice, calories_burned)
+        insert_achievements(user_id, choice, calories_burned)
         print(f"You burned {calories_burned:.2f} calories")
 
     @staticmethod
@@ -299,7 +315,7 @@ def main():
     while check:
         os.system('cls')
         print('Select your fitness activity:')
-        assist = {1: 'Start workout', 2: 'Workout Plans', 3: 'Custom Work Plans', 4: 'Set Goal',5:'Leader Board'}
+        assist = {1: 'Start workout', 2: 'Workout Plans', 3: 'Custom Work Plans', 4: 'Set Goal',5:'Leader Board',6:'Achievements'}
         for i, j in assist.items():
             print(f"{i}. {j}")
         try:
@@ -332,6 +348,17 @@ def main():
                     print(tabulate(result, headers=column_name))
                 else:
                     print('currently learder board is empty')
+            elif input_choice == 6:
+                result = cursor.execute(
+                    '''
+                    select count(activity) , sum(calories_burned) from achievements 
+                    where user_id = ?
+                    group by user_id
+                    ''',(user_id,)
+                ).fetchone()
+
+                if result:
+                    print(tabulate([result], headers=['No_of_activity','Total_calories_burned']))
         except ValueError:
             print("Please enter a valid input")
 
