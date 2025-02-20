@@ -356,19 +356,20 @@ def main():
                 FitnessTracker.goal_setting(user_id)
             elif input_choice == 5:
                 result = cursor.execute('''
-                select Users.* , workout_details.calories_burned
+                select  name, age,gender,sum(workout_details.calories_burned) as 'Total Calories Burned'
                 from Users
                 join workout_details 
                 on workout_details.user_id = Users.user_id
-                order by workout_details.calories_burned desc
+                group by Users.user_id
+                order by sum(workout_details.calories_burned) desc
                 ''').fetchall()
 
                 column_name = [result[0] for result in cursor.description]
 
                 if result:
-                    print(tabulate(result, headers=column_name))
+                    print(tabulate(result, headers=column_name ,tablefmt="fancy_grid"))
                 else:
-                    print('currently learder board is empty')
+                    print('currently leader board is empty')
             elif input_choice == 6:
                 result = cursor.execute(
                     '''
@@ -379,7 +380,7 @@ def main():
                 ).fetchone()
 
                 if result:
-                    print(tabulate([result], headers=['No_of_activity','Total_calories_burned']))
+                    print(tabulate([result], headers=['No_of_activity','Total_calories_burned'],tablefmt="fancy_grid"))
             elif input_choice == 7:
 
                 friend_name = input('Enter your friend name: ')
@@ -396,7 +397,7 @@ def main():
                     print(tabulate(result, headers=column_name,tablefmt='fancy_grid'))
                     time.sleep(2)
                 else:
-                    print('No activites Found')
+                    print('No activities Found')
             elif input_choice == 9:
                 print("Logged Out")
                 exit()
