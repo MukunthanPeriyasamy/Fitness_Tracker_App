@@ -136,7 +136,22 @@ def insert_achievements(user_id, activity, calories_burned):
     )
     connection.commit()
 
-
+def view_custom_plan(user_id):
+    plans = {1:'Create custom Plan',2:'View Plan'}
+    os.system('cls')
+    for i, j in plans.items():
+        print(i, j)
+    select = int(input("Enter your choice: "))
+    choice = plans.get(select,'Invalid choice')
+    if choice != 'Invalid choice':
+        if select == 1:
+            FitnessTracker.custom_plans(user_id)
+        else:
+            res = cursor.execute('select date, activity from workout_plans where user_id = ?',(user_id,)).fetchall()
+            columns = [i[0] for i in cursor.description]
+            print(tabulate(res, headers=columns,tablefmt="fancy_grid"))
+    else:
+        print("Invalid choice")
 
 class User:
     @staticmethod
@@ -168,7 +183,7 @@ class User:
             gender = input("Enter your gender: ")
             insert_users(name, password, age, gender)
             print("Registered Successfully!!")
-            time.sleep(0.7)
+            time.sleep(1)
             print("Good to go")
 
         except ValueError:
@@ -358,7 +373,7 @@ def main():
             elif input_choice == 2:
                 FitnessTracker.workout_plans()
             elif input_choice == 3:
-                FitnessTracker.custom_plans(user_id)
+                view_custom_plan(user_id)
             elif input_choice == 4:
                 FitnessTracker.goal_setting(user_id)
             elif input_choice == 5:
